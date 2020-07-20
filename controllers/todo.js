@@ -1,49 +1,69 @@
-const todoList = [];
-let id = 1;
+const db = require('../models');
 
-const createTodo = (req, res) => {
+const createTodo = async (req, res) => {
     const { task } = req.body;
-    const newTodo = {
-        id: id++,
-        task
-    };
 
-    todoList.push(newTodo);
+    try {
+        const newTodo = await db.TodoList.create({ task });
+        res.status(201).send(newTodo);
+    } catch (err) {
+        res.status(400).send(err);
+    }
 
-    res.status(201).send(newTodo);
 };
 
 const getTodos = (req, res) => {
-    res.status(201).send(todoList);
+    db.TodoList.findAll()
+        .then(allTodos => {
+            res.status(200).send(allTodos);
+        })
+        .catch(err => {
+            res.status(400).send(err);
+        });
 };
 
-const getTodoById = (req, res) => {
+const getTodoById = async (req, res) => {
     const targetId = Number(req.params.id);
-    const targetTodo = todoList.find(todo => todo.id === targetId);
+
+    const targetTodo = await db.TodoList.findOne({ where: { id: targetId } });
 
     res.status(200).send(targetTodo);
 };
 
-const updateTodo = (req, res) => {
+const updateTodo = async (req, res) => {
     const targetId = Number(req.params.id);
     const { task } = req.body;
-    const targetIdx = todoList.findIndex(todo => todo.id === targetId);
 
-    todoList[targetIdx] = {
-        id: targetId,
-        task
-    };
+    const targetTodo = await db.TodoList.findOne({ where: { id: targetId } });
 
-    res.status(200).send({ message: `Updated ID ${targetId}` });
+    if (targetTodo) {
+
+        targetTodo.update({
+            task,
+        });
+        res.status(200).send({ message: `Updated ID ${targetId}` });
+
+    } else {
+
+        res.status(404).send({ message: `Not Found` });
+
+    }
+
 };
 
-const deleteTodo = (req, res) => {
+const deleteTodo = async (req, res) => {
     const targetId = Number(req.params.id);
-    const targetIdx = todoList.findIndex(todo => todo.id === targetId);
 
-    todoList.splice(targetIdx, 1);
+    const targetTodo = await db.TodoList.findOne({ where: { id: targetId } });
+    if (targetTodo) {
+        targetTodo.destroy();
+        res.status(204).send();
+    } else {
+        res.status(404).send("Todo List Not Found NaJA");
+    }
 
-    res.status(204).send();
+    // await db.TodoList.destroy({ where: { id: targetId } });
+
 };
 
 module.exports = {
